@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excel Sheet Merger — Maars &amp; Associates</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4ef;--surface:#ffffff;--surface2:#eeede6;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
+  --text:#18170f;--text2:#5c5a4e;--text3:#9c9a8c;
+  --gold:#b8922a;--gold-light:#f9f2e3;--gold-mid:#e8d49a;
+  --accent:#1a4fd6;--accent-light:#eaeffc;
+  --success:#0d8a4e;--success-bg:#e6f7ef;
+  --danger:#c0392b;--danger-bg:#fdecea;
+  --warn:#b85a00;--warn-bg:#fff3e6;
+  --shadow:0 1px 4px rgba(0,0,0,0.07),0 6px 20px rgba(0,0,0,0.05);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* FIRM BANNER */
+.firm-banner{background:#1a170c;padding:12px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--gold)}
+.firm-left{display:flex;align-items:center;gap:14px}
+.firm-emblem{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.firm-name{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;color:#f0e6c8;letter-spacing:0.01em;line-height:1.2}
+.firm-sub{font-size:10px;color:var(--gold);letter-spacing:0.13em;text-transform:uppercase;margin-top:2px}
+.firm-contact{text-align:right}
+.firm-ca{font-size:12px;font-weight:500;color:#f0e6c8}
+.firm-phone{font-size:11px;color:var(--gold);margin-top:3px;font-family:'DM Mono',monospace;letter-spacing:0.04em}
+
+/* TOOL HEADER */
+.tool-header{background:var(--surface);border-bottom:0.5px solid var(--border2);padding:17px 40px;display:flex;align-items:center;justify-content:space-between}
+.tool-title-row{display:flex;align-items:center;gap:13px}
+.tool-icon{width:42px;height:42px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.tool-title{font-size:18px;font-weight:500;letter-spacing:-0.3px}
+.tool-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.tool-pill{font-size:11px;font-family:'DM Mono',monospace;background:var(--gold-light);color:var(--gold);border:0.5px solid var(--gold-mid);padding:5px 14px;border-radius:20px;white-space:nowrap}
+
+/* MAIN */
+.main{padding:28px 40px;max-width:1040px;margin:0 auto}
+
+/* STEPS */
+.steps{display:flex;align-items:center;margin-bottom:22px}
+.step{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--text3);padding:8px 12px 8px 0}
+.step.active{color:var(--accent)}.step.done{color:var(--success)}
+.step-num{width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0}
+.step.done .step-num{background:var(--success);border-color:var(--success);color:#fff}
+.step-arrow{color:var(--border2);font-size:14px;padding:0 12px}
+
+/* SECTION CARDS */
+.section-card{background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:22px;box-shadow:var(--shadow);margin-bottom:20px}
+.section-title{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.09em;margin-bottom:14px}
+
+/* DROPZONE */
+.dropzone{border:2px dashed var(--border2);border-radius:14px;background:var(--surface2);padding:44px 32px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+.dropzone:hover,.dropzone.drag-over{border-color:var(--accent);background:var(--accent-light)}
+.dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:38px;margin-bottom:10px}
+.drop-title{font-size:15px;font-weight:500;margin-bottom:5px}
+.drop-sub{font-size:12px;color:var(--text2)}
+
+/* FILE LIST */
+.file-list{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+.file-card{background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);animation:slideIn .2s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.file-icon{width:34px;height:34px;background:#e8f5e9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{font-size:11px;color:var(--text3);margin-top:2px;font-family:'DM Mono',monospace}
+.file-status{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.status-ok{background:var(--success-bg);color:var(--success)}
+.file-remove{width:26px;height:26px;border-radius:50%;border:none;background:var(--surface2);cursor:pointer;color:var(--text3);font-size:13px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.file-remove:hover{background:var(--danger-bg);color:var(--danger)}
+
+/* DETECT BANNER */
+.detect-banner{display:flex;align-items:center;gap:10px;background:var(--gold-light);border:0.5px solid var(--gold-mid);border-radius:10px;padding:10px 14px;margin-top:14px;font-size:12px;color:var(--warn)}
+
+/* STATS */
+.stats-row{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
+.stat-card{flex:1;min-width:130px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:14px;box-shadow:var(--shadow)}
+.stat-label{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px}
+.stat-value{font-size:21px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace}
+.stat-sub{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* SHEET CHIPS */
+.sheet-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.sheet-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:5px 12px;border-radius:20px;border:0.5px solid var(--border2);background:var(--surface);cursor:pointer;transition:background .15s,border-color .15s;user-select:none}
+.sheet-chip.selected{background:var(--accent);border-color:var(--accent);color:#fff}
+.sheet-chip input[type=checkbox]{display:none}
+
+/* OPTIONS */
+.options-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.option-card{background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:13px 15px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;align-items:flex-start;gap:10px}
+.option-card.selected{border-color:var(--accent);background:var(--accent-light)}
+.option-radio{width:15px;height:15px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center}
+.option-card.selected .option-radio{border-color:var(--accent)}
+.option-card.selected .option-radio::after{content:'';width:7px;height:7px;border-radius:50%;background:var(--accent);display:block}
+.option-title{font-size:13px;font-weight:500}
+.option-desc{font-size:11px;color:var(--text2);margin-top:3px;line-height:1.5}
+
+/* INPUTS */
+select,input[type=text],input[type=number]{font-family:'DM Sans',sans-serif;font-size:13px;border:0.5px solid var(--border2);border-radius:8px;padding:8px 12px;background:var(--surface);color:var(--text);outline:none;transition:border-color .15s}
+select:focus,input:focus{border-color:var(--accent)}
+
+/* PREVIEW TABLE */
+.preview-wrap{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);margin-top:18px}
+.preview-header{padding:11px 15px;background:var(--surface2);border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.preview-header span{font-size:13px;font-weight:500}
+.preview-badge{font-size:11px;font-family:'DM Mono',monospace;background:var(--accent-light);color:var(--accent);padding:3px 10px;border-radius:20px}
+.table-scroll{overflow-x:auto;max-height:300px;overflow-y:auto}
+table{border-collapse:collapse;width:100%;font-size:12px}
+thead th{background:#f4f3ee;padding:8px 13px;text-align:left;font-weight:500;color:var(--text2);white-space:nowrap;border-bottom:0.5px solid var(--border);position:sticky;top:0;font-size:10px;text-transform:uppercase;letter-spacing:0.05em}
+tbody tr{border-bottom:0.5px solid var(--border);transition:background .1s}
+tbody tr:hover{background:var(--accent-light)}
+tbody td{padding:7px 13px;white-space:nowrap;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)}
+tbody tr.file-break td{border-top:2px solid var(--accent)}
+
+/* MERGE BTN */
+.merge-btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;cursor:pointer;margin-top:18px;transition:opacity .2s,transform .1s;display:flex;align-items:center;justify-content:center;gap:8px}
+.merge-btn:hover{opacity:.9}.merge-btn:active{transform:scale(.99)}.merge-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* PROGRESS */
+.progress-wrap{margin-top:14px;display:none}
+.progress-bar-bg{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-bar-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s ease;width:0%}
+.progress-label{font-size:12px;color:var(--text2);margin-top:5px}
+
+/* LOG */
+.log-wrap{background:#18170f;border-radius:10px;padding:12px 14px;margin-top:14px;max-height:180px;overflow-y:auto;display:none;font-family:'DM Mono',monospace}
+.log-line{font-size:11px;padding:2px 0;border-bottom:0.5px solid rgba(255,255,255,0.05)}
+.log-line.ok{color:#6aed9c}.log-line.info{color:#88c8ff}.log-line.warn{color:#ffc166}.log-line.err{color:#ff8888}
+
+.divider{height:0.5px;background:var(--border);margin:20px 0}
+.chip{display:inline-block;font-size:10px;font-family:'DM Mono',monospace;padding:2px 9px;border-radius:20px;background:var(--surface2);color:var(--text2);margin-right:4px;margin-bottom:4px}
+.chip.accent{background:var(--accent-light);color:var(--accent)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,0.2);transform:translateY(80px);transition:transform .3s cubic-bezier(.17,.67,.3,1);z-index:1000;max-width:340px}
+.toast.show{transform:translateY(0)}.toast.success{background:var(--success)}.toast.error{background:var(--danger)}
+
+/* FOOTER */
+.footer{text-align:center;padding:22px 40px;font-size:11px;color:var(--text3);border-top:0.5px solid var(--border);margin-top:4px}
+.footer strong{color:var(--gold);font-weight:500}
+</style>
+</head>
+<body>
+
+<!-- FIRM BANNER -->
+<div class="firm-banner">
+  <div class="firm-left">
+    <div class="firm-emblem">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="#b8922a" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M12 2v20M3 7l9 5 9-5" stroke="#b8922a" stroke-width="1.4" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="firm-name">Maars &amp; Associates</div>
+      <div class="firm-sub">Chartered Accountants</div>
+    </div>
+  </div>
+  <div class="firm-contact">
+    <div class="firm-ca">CA Akash Agarwal</div>
+    <div class="firm-phone">+91-8799999935</div>
+  </div>
+</div>
+
+<!-- TOOL HEADER -->
+<div class="tool-header">
+  <div class="tool-title-row">
+    <div class="tool-icon">⚡</div>
+    <div>
+      <div class="tool-title">Universal Excel Sheet Merger</div>
+      <div class="tool-sub">Combine any similar Excel files — all sheets preserved, zero format loss, instant download</div>
+    </div>
+  </div>
+  <span class="tool-pill">Works with any .xlsx</span>
+</div>
+
+<div class="main">
+
+  <!-- STEPS -->
+  <div class="steps">
+    <div class="step active" id="step1"><div class="step-num">1</div> Upload Files</div>
+    <span class="step-arrow">›</span>
+    <div class="step" id="step2"><div class="step-num">2</div> Configure</div>
+    <span class="step-arrow">›</span>
+    <div class="step" id="step3"><div class="step-num">3</div> Merge &amp; Export</div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="section-card" id="uploadSection">
+    <div class="section-title">Step 1 — Upload your Excel files</div>
+
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" multiple accept=".xlsx,.xls">
+      <div class="drop-icon">📂</div>
+      <div class="drop-title">Drop Excel files here, or click to browse</div>
+      <div class="drop-sub">Any number of .xlsx files · All sheet names auto-detected · Fully offline — no data leaves your device</div>
+    </div>
+
+    <div id="detectBanner" class="detect-banner" style="display:none">
+      <span>🔍</span><span id="detectText"></span>
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+
+    <div class="stats-row" id="statsRow" style="display:none">
+      <div class="stat-card"><div class="stat-label">Files Loaded</div><div class="stat-value" id="statFiles">0</div><div class="stat-sub">xlsx files</div></div>
+      <div class="stat-card"><div class="stat-label">Unique Sheets</div><div class="stat-value" id="statSheets">0</div><div class="stat-sub">sheet names</div></div>
+      <div class="stat-card"><div class="stat-label">Total Rows</div><div class="stat-value" id="statRows">0</div><div class="stat-sub">across all files</div></div>
+      <div class="stat-card"><div class="stat-label">Max Columns</div><div class="stat-value" id="statCols">0</div><div class="stat-sub">widest sheet</div></div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="section-card" id="configSection" style="display:none">
+    <div class="section-title">Step 2 — Configure merge settings</div>
+
+    <div style="font-size:13px;font-weight:500;margin-bottom:4px">Sheets to include</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Toggle which sheet names to include. Matching names across files will be stacked together.</div>
+    <div class="sheet-grid" id="sheetGrid"></div>
+
+    <div class="divider"></div>
+
+    <div style="font-size:13px;font-weight:500;margin-bottom:4px">File sort order</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Controls the order files appear in the merged output.</div>
+    <div class="options-grid">
+      <div class="option-card selected" onclick="selectOption('sort','chrono')" id="opt-chrono">
+        <div class="option-radio"></div>
+        <div class="option-body"><div class="option-title">Chronological ↑</div><div class="option-desc">Oldest file first (by detected period or filename)</div></div>
+      </div>
+      <div class="option-card" onclick="selectOption('sort','revchrono')" id="opt-revchrono">
+        <div class="option-radio"></div>
+        <div class="option-body"><div class="option-title">Reverse Chronological ↓</div><div class="option-desc">Latest file first</div></div>
+      </div>
+      <div class="option-card" onclick="selectOption('sort','asloaded')" id="opt-asloaded">
+        <div class="option-radio"></div>
+        <div class="option-body"><div class="option-title">As Uploaded</div><div class="option-desc">Keep the order you dropped the files</div></div>
+      </div>
+      <div class="option-card" onclick="selectOption('sort','byrows')" id="opt-byrows">
+        <div class="option-radio"></div>
+        <div class="option-body"><div class="option-title">By Volume ↓</div><div class="option-desc">Largest file (most rows) first</div></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="font-size:13px;font-weight:500;margin-bottom:4px">Header row strategy</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">How should column headers be handled when stacking?</div>
+    <div class="options-grid">
+      <div class="option-card selected" onclick="selectOption('header','once')" id="opt-once">
+        <div class="option-radio"></div>
+        <div class="option-body"><div class="option-title">Header once (recommended)</div><div class="option-desc">Single header at top. Best for filtering and pivot tables.</div></div>
+      </div>
+      <div class="option-card" onclick="selectOption('header','each')" id="opt-each">
+        <div class="option-radio"></div>
+        <div class="option-body"><div class="option-title">Repeat per file</div><div class="option-desc">Inserts a labelled separator + header before each file's data.</div></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:13px;font-weight:500;margin-bottom:6px">Header / title rows to skip per file</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">How many top rows are metadata/title (not actual data)?</div>
+        <input type="number" id="headerSkip" min="0" max="20" value="1" style="width:90px">
+        <span style="font-size:12px;color:var(--text2);margin-left:8px">rows skipped from file 2 onwards</span>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:13px;font-weight:500;margin-bottom:6px">Add source file column</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Inserts a column showing which file each row came from.</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="addSource" style="width:16px;height:16px;accent-color:var(--accent)"> Add "Source File" column
+        </label>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px">Output filename</div>
+    <input type="text" id="outFilename" value="Merged_Output.xlsx" style="width:100%">
+
+    <!-- LIVE PREVIEW -->
+    <div style="margin-top:22px">
+      <div class="section-title">Live preview — merged data (first 30 rows)</div>
+      <div class="preview-wrap">
+        <div class="preview-header">
+          <span id="previewSheetName">Preview</span>
+          <span class="preview-badge" id="previewBadge">—</span>
+        </div>
+        <div class="table-scroll">
+          <table><thead id="previewHead"></thead><tbody id="previewBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="section-card" id="mergeSection" style="display:none">
+    <div class="section-title">Step 3 — Merge &amp; Export</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px">
+      Ready to merge <strong id="summaryFiles">—</strong> across <strong id="summarySheets">—</strong>.
+      Column widths, merged cells, and sheet structure are preserved exactly from the template file.
+    </div>
+    <div id="monthChips" style="margin-bottom:6px"></div>
+    <button class="merge-btn" id="mergeBtn" onclick="doMerge()">
+      <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      Merge &amp; Download Excel File
+    </button>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar"></div></div>
+      <div class="progress-label" id="progressLabel">Preparing…</div>
+    </div>
+    <div class="log-wrap" id="logWrap"></div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Built exclusively for <strong>Maars &amp; Associates, Chartered Accountants</strong> &nbsp;·&nbsp; CA Akash Agarwal &nbsp;·&nbsp; +91-8799999935 &nbsp;·&nbsp; All processing is 100% local — no data is uploaded anywhere.
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const state = {
+  files: [],
+  sortMode: 'chrono',
+  headerMode: 'once',
+  selectedSheets: new Set(),
+  allSheetNames: [],
+};
+
+// FILE INPUT
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+fileInput.addEventListener('change', e => { handleFiles(e.target.files); fileInput.value = ''; });
+
+async function handleFiles(rawFiles) {
+  const toAdd = Array.from(rawFiles).filter(f => f.name.match(/\.xlsx?$/i));
+  if (!toAdd.length) { showToast('No valid .xlsx files found', 'error'); return; }
+  for (const file of toAdd) {
+    if (state.files.find(f => f.name === file.name)) continue;
+    try {
+      const wb = await readWorkbook(file);
+      const info = analyzeWorkbook(wb, file.name);
+      state.files.push({ name: file.name, file, workbook: wb, ...info });
+    } catch(e) {
+      showToast('Could not read ' + file.name, 'error');
+    }
+  }
+  rebuildSheetList();
+  renderFileList();
+  updateStats();
+  if (state.files.length >= 1) showConfig();
+}
+
+function readWorkbook(file) {
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try { res(XLSX.read(e.target.result, { type:'array', cellStyles:true, cellDates:true, sheetStubs:true })); }
+      catch(err) { rej(err); }
+    };
+    reader.onerror = () => rej(new Error('Read error'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function analyzeWorkbook(wb, filename) {
+  let period = '', totalRows = 0, maxCols = 0;
+  for (const sname of wb.SheetNames) {
+    const ws = wb.Sheets[sname];
+    if (!ws || !ws['!ref']) continue;
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    totalRows += range.e.r + 1;
+    maxCols = Math.max(maxCols, range.e.c + 1);
+    if (!period) {
+      for (const addr of ['C5','B2','A2','C4','B3','A3','D2','E2']) {
+        const cell = ws[addr];
+        if (cell && cell.v && typeof cell.v === 'string' && /^\d{6}$/.test(String(cell.v).trim())) {
+          period = String(cell.v).trim(); break;
+        }
+      }
+    }
+  }
+  if (!period) { const m = filename.match(/(\d{6})/); if (m) period = m[1]; }
+  return { period, totalRows, maxCols, sheetNames: wb.SheetNames };
+}
+
+function periodLabel(p) {
+  if (!p || p.length !== 6) return p || '';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const mm = parseInt(p.substring(0,2),10) - 1;
+  const yyyy = p.substring(2);
+  return (months[mm] !== undefined) ? months[mm] + ' ' + yyyy : p;
+}
+
+function friendlyName(f) {
+  const lbl = periodLabel(f.period);
+  return lbl || f.name.replace(/\.xlsx?$/i,'').substring(0,28);
+}
+
+// SHEET LIST
+function rebuildSheetList() {
+  const seen = new Set(), ordered = [];
+  for (const f of state.files) for (const s of f.sheetNames) { if (!seen.has(s)) { seen.add(s); ordered.push(s); } }
+  state.allSheetNames = ordered;
+  for (const s of ordered) state.selectedSheets.add(s);
+  const grid = document.getElementById('sheetGrid');
+  grid.innerHTML = '';
+  for (const s of ordered) {
+    const chip = document.createElement('label');
+    chip.className = 'sheet-chip' + (state.selectedSheets.has(s) ? ' selected' : '');
+    chip.innerHTML = '<input type="checkbox" ' + (state.selectedSheets.has(s)?'checked':'') + '><span>' + s + '</span>';
+    chip.querySelector('input').addEventListener('change', ev => {
+      if (ev.target.checked) { state.selectedSheets.add(s); chip.classList.add('selected'); }
+      else { state.selectedSheets.delete(s); chip.classList.remove('selected'); }
+      updatePreview(); updateMergeSummary();
+    });
+    grid.appendChild(chip);
+  }
+}
+
+// FILE LIST
+function renderFileList() {
+  const list = document.getElementById('fileList');
+  list.innerHTML = '';
+  state.files.forEach((f, i) => {
+    const card = document.createElement('div');
+    card.className = 'file-card';
+    card.innerHTML = '<div class="file-icon">📗</div>'
+      + '<div class="file-info"><div class="file-name">' + f.name + '</div>'
+      + '<div class="file-meta">' + friendlyName(f) + ' &nbsp;·&nbsp; ' + f.sheetNames.length + ' sheets &nbsp;·&nbsp; ~' + f.totalRows.toLocaleString() + ' rows &nbsp;·&nbsp; ' + f.maxCols + ' cols</div></div>'
+      + '<span class="file-status status-ok">✓ Ready</span>'
+      + '<button class="file-remove" onclick="removeFile(' + i + ')">✕</button>';
+    list.appendChild(card);
+  });
+}
+
+function removeFile(i) {
+  state.files.splice(i, 1);
+  rebuildSheetList(); renderFileList(); updateStats();
+  if (!state.files.length) {
+    ['configSection','mergeSection'].forEach(id => document.getElementById(id).style.display='none');
+    document.getElementById('detectBanner').style.display='none';
+    document.getElementById('statsRow').style.display='none';
+    document.getElementById('step2').classList.remove('active');
+    document.getElementById('step3').classList.remove('active');
+  } else { updatePreview(); updateMergeSummary(); }
+}
+
+// STATS
+function updateStats() {
+  const n = state.files.length;
+  const totalRows = state.files.reduce((s,f)=>s+f.totalRows,0);
+  const sheetSet = new Set(state.files.flatMap(f=>f.sheetNames));
+  const maxCols = state.files.reduce((m,f)=>Math.max(m,f.maxCols),0);
+  document.getElementById('statsRow').style.display = n ? 'flex' : 'none';
+  document.getElementById('statFiles').textContent = n;
+  document.getElementById('statSheets').textContent = sheetSet.size;
+  document.getElementById('statRows').textContent = totalRows.toLocaleString();
+  document.getElementById('statCols').textContent = maxCols;
+  const banner = document.getElementById('detectBanner');
+  const detectText = document.getElementById('detectText');
+  if (n) {
+    const periods = state.files.map(f=>f.period).filter(Boolean);
+    if (periods.length) {
+      const labels = [...new Set(periods.map(periodLabel))].join(', ');
+      detectText.innerHTML = '<strong>Auto-detected periods:</strong> ' + labels + ' &nbsp;·&nbsp; ' + sheetSet.size + ' unique sheet name(s) across all files';
+    } else {
+      detectText.innerHTML = '<strong>' + n + ' file(s) loaded</strong> &nbsp;·&nbsp; ' + sheetSet.size + ' unique sheet name(s) detected';
+    }
+    banner.style.display = 'flex';
+  } else { banner.style.display = 'none'; }
+}
+
+// OPTIONS
+function selectOption(group, val) {
+  if (group === 'sort') {
+    ['chrono','revchrono','asloaded','byrows'].forEach(k => document.getElementById('opt-'+k).classList.remove('selected'));
+    document.getElementById('opt-'+val).classList.add('selected');
+    state.sortMode = val;
+  } else {
+    ['once','each'].forEach(k => document.getElementById('opt-'+k).classList.remove('selected'));
+    document.getElementById('opt-'+val).classList.add('selected');
+    state.headerMode = val;
+  }
+  updatePreview(); updateMergeSummary();
+}
+
+function getSorted() {
+  const files = [...state.files];
+  if (state.sortMode === 'chrono') files.sort((a,b)=>(a.period||a.name).localeCompare(b.period||b.name));
+  else if (state.sortMode === 'revchrono') files.sort((a,b)=>(b.period||b.name).localeCompare(a.period||a.name));
+  else if (state.sortMode === 'byrows') files.sort((a,b)=>b.totalRows-a.totalRows);
+  return files;
+}
+
+function showConfig() {
+  document.getElementById('configSection').style.display = 'block';
+  document.getElementById('mergeSection').style.display = 'block';
+  document.getElementById('step2').classList.add('active');
+  document.getElementById('step3').classList.add('active');
+  updatePreview(); updateMergeSummary();
+}
+
+// PREVIEW
+function updatePreview() {
+  const sorted = getSorted();
+  const head = document.getElementById('previewHead');
+  const body = document.getElementById('previewBody');
+  head.innerHTML = ''; body.innerHTML = '';
+  if (!sorted.length) return;
+  const firstSheet = state.allSheetNames.find(s => state.selectedSheets.has(s));
+  if (!firstSheet) return;
+  document.getElementById('previewSheetName').textContent = 'Sheet: "' + firstSheet + '"';
+  const skip = Math.max(0, parseInt(document.getElementById('headerSkip').value)||1);
+  const addSrc = document.getElementById('addSource').checked;
+  let headerDone = false, count = 0;
+  let totalRowsEst = 0;
+  for (const f of sorted) {
+    const ws = f.workbook.Sheets[firstSheet];
+    if (!ws || !ws['!ref']) continue;
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    totalRowsEst += range.e.r + 1;
+    const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:true });
+    if (!rows.length) continue;
+    if (!headerDone) {
+      const tr = document.createElement('tr');
+      if (addSrc) { const th=document.createElement('th'); th.textContent='Source File'; tr.appendChild(th); }
+      (rows[0]||[]).slice(0,12).forEach(h => { const th=document.createElement('th'); th.textContent=String(h||''); tr.appendChild(th); });
+      head.appendChild(tr);
+      headerDone = true;
+    }
+    const dataStart = state.headerMode === 'once' ? skip : 0;
+    let firstRow = true;
+    for (let ri = dataStart; ri < rows.length && count < 30; ri++) {
+      const row = rows[ri];
+      if (!row || row.every(v=>v===''||v===null||v===undefined)) continue;
+      const tr = document.createElement('tr');
+      if (firstRow) { tr.className='file-break'; firstRow=false; }
+      if (addSrc) { const td=document.createElement('td'); td.textContent=friendlyName(f); td.style.color='var(--accent)'; td.style.fontWeight='500'; tr.appendChild(td); }
+      row.slice(0,12).forEach(v => { const td=document.createElement('td'); td.textContent=v!=null?String(v):''; tr.appendChild(td); });
+      body.appendChild(tr); count++;
+    }
+  }
+  document.getElementById('previewBadge').textContent = '~' + totalRowsEst.toLocaleString() + ' total rows';
+}
+
+function updateMergeSummary() {
+  const sorted = getSorted();
+  document.getElementById('summaryFiles').textContent = sorted.length + ' file' + (sorted.length!==1?'s':'');
+  document.getElementById('summarySheets').textContent = state.selectedSheets.size + ' sheet' + (state.selectedSheets.size!==1?'s':'');
+  const chips = document.getElementById('monthChips');
+  chips.innerHTML = '';
+  sorted.forEach(f => {
+    const c = document.createElement('span');
+    c.className = 'chip accent';
+    c.textContent = friendlyName(f);
+    chips.appendChild(c);
+  });
+}
+
+document.getElementById('headerSkip').addEventListener('input', () => { updatePreview(); });
+document.getElementById('addSource').addEventListener('change', () => { updatePreview(); updateMergeSummary(); });
+
+// MERGE
+async function doMerge() {
+  const sorted = getSorted();
+  if (!sorted.length) { showToast('No files to merge','error'); return; }
+  if (!state.selectedSheets.size) { showToast('Select at least one sheet','error'); return; }
+  const btn = document.getElementById('mergeBtn');
+  btn.disabled = true;
+  const pw = document.getElementById('progressWrap');
+  const lw = document.getElementById('logWrap');
+  pw.style.display = 'block'; lw.style.display = 'block'; lw.innerHTML = '';
+  const log = (msg, type='info') => {
+    const d = document.createElement('div');
+    d.className = 'log-line ' + type;
+    d.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    lw.appendChild(d); lw.scrollTop = lw.scrollHeight;
+  };
+  const setProgress = (pct, label) => {
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = label;
+  };
+  try {
+    log('Starting merge of ' + sorted.length + ' files across ' + state.selectedSheets.size + ' sheet(s)…', 'info');
+    setProgress(5, 'Initializing…');
+    const skip = Math.max(0, parseInt(document.getElementById('headerSkip').value)||1);
+    const addSrc = document.getElementById('addSource').checked;
+    const outWB = XLSX.utils.book_new();
+    let idx = 0;
+    const sheetsArr = [...state.selectedSheets];
+    for (const sheetName of state.allSheetNames) {
+      if (!state.selectedSheets.has(sheetName)) continue;
+      idx++;
+      setProgress(Math.round(5 + (idx/sheetsArr.length)*88), 'Merging "' + sheetName + '"…');
+      log('Sheet: "' + sheetName + '"', 'info');
+      await new Promise(r => setTimeout(r, 0));
+      const outSheet = mergeSheet(sorted, sheetName, skip, addSrc, state.headerMode);
+      XLSX.utils.book_append_sheet(outWB, outSheet, sheetName);
+      const rng = XLSX.utils.decode_range(outSheet['!ref'] || 'A1');
+      log('  → ' + (rng.e.r+1) + ' rows, ' + (rng.e.c+1) + ' cols', 'ok');
+    }
+    setProgress(96, 'Writing file…');
+    log('Writing output…', 'info');
+    await new Promise(r => setTimeout(r, 50));
+    const outName = document.getElementById('outFilename').value || 'Merged_Output.xlsx';
+    XLSX.writeFile(outWB, outName, { compression: true });
+    setProgress(100, 'Complete!');
+    log('✓ Saved as "' + outName + '"', 'ok');
+    showToast('Merged file downloaded successfully!', 'success');
+  } catch(e) {
+    log('ERROR: ' + e.message, 'err');
+    showToast('Merge failed: ' + e.message, 'error');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function mergeSheet(sortedFiles, sheetName, headerSkipRows, addSourceCol, headerMode) {
+  const outRows = [];
+  let headerWritten = false;
+  let templateSheet = null;
+  for (const f of sortedFiles) {
+    const ws = f.workbook.Sheets[sheetName];
+    if (!ws || !ws['!ref']) continue;
+    if (!templateSheet) templateSheet = ws;
+    const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:null, raw:true });
+    if (!headerWritten) {
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i] ? [...rows[i]] : [];
+        if (addSourceCol) row.unshift(i >= headerSkipRows ? (i === headerSkipRows ? 'Source File' : friendlyName(f)) : null);
+        outRows.push(row);
+      }
+      headerWritten = true;
+    } else {
+      const skipCount = headerMode === 'once' ? headerSkipRows : 0;
+      if (headerMode === 'each') {
+        const sepRow = new Array(outRows[0] ? outRows[0].length : 1).fill(null);
+        sepRow[addSourceCol ? 1 : 0] = '▸ ' + friendlyName(f);
+        outRows.push(sepRow);
+        const hdrRow = rows[headerSkipRows - 1] ? [...rows[headerSkipRows - 1]] : [];
+        if (addSourceCol) hdrRow.unshift('Source File');
+        outRows.push(hdrRow);
+      }
+      for (let i = skipCount; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.every(v => v===null||v===undefined||v==='')) continue;
+        const r = [...row];
+        if (addSourceCol) r.unshift(friendlyName(f));
+        outRows.push(r);
+      }
+    }
+  }
+  if (!outRows.length) return XLSX.utils.aoa_to_sheet([]);
+  const outSheet = XLSX.utils.aoa_to_sheet(outRows, { raw:true });
+  if (templateSheet) {
+    if (templateSheet['!cols']) outSheet['!cols'] = JSON.parse(JSON.stringify(templateSheet['!cols']));
+    if (templateSheet['!merges']) {
+      outSheet['!merges'] = templateSheet['!merges']
+        .filter(m => m.s.r < headerSkipRows)
+        .map(m => JSON.parse(JSON.stringify(m)));
+    }
+  }
+  return outSheet;
+}
+
+// TOAST
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+</script>
+</body>
+</html>
